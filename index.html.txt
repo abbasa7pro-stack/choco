@@ -1,161 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Abbas ❤️ Zainy</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chocolate Day 🍫</title>
 
 <style>
-body {
-  margin: 0;
-  height: 100vh;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+*{box-sizing:border-box;font-family:"Poppins",sans-serif}
+body{
+  margin:0;
+  background:linear-gradient(135deg,#5a2d1c,#ffb3c6);
+  color:#fff;
+  overflow:hidden;
 }
 
-#screen {
-  text-align: center;
-  z-index: 2;
+.screen{
+  display:none;
+  height:100vh;
+  width:100vw;
+  text-align:center;
+  padding:24px;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+.screen.active{display:flex}
+
+h1{margin-bottom:12px}
+p{max-width:320px;line-height:1.6}
+
+button{
+  padding:14px 28px;
+  border:none;
+  border-radius:30px;
+  font-size:1rem;
+  background:#ff4d6d;
+  color:#fff;
+  cursor:pointer;
 }
 
-#question {
-  font-size: 22px;
-  margin-bottom: 20px;
+#gameArea{
+  position:relative;
+  width:100%;
+  height:100%;
 }
 
-#buttons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
+.item{
+  position:absolute;
+  font-size:32px;
+  cursor:pointer;
+  animation:fall linear forwards;
 }
 
-button {
-  padding: 14px 30px;
-  font-size: 18px;
-  border-radius: 30px;
-  border: none;
-  cursor: pointer;
+@keyframes fall{
+  to{transform:translateY(110vh)}
 }
 
-#yes {
-  background: #ff4d6d;
-  color: white;
+.popup{
+  position:fixed;
+  top:18%;
+  background:#00000070;
+  padding:10px 16px;
+  border-radius:20px;
+  animation:fade 1.4s forwards;
 }
 
-#no {
-  background: #ccc;
-  position: relative;
-  transition: transform 0.2s ease;
+@keyframes fade{
+  0%{opacity:1}
+  100%{opacity:0}
 }
 
-/* Slideshow */
-#slideshow {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: black;
-  justify-content: center;
-  align-items: center;
-  z-index: 5;
+.heart{
+  position:fixed;
+  bottom:-20px;
+  font-size:20px;
+  animation:floatUp 4s linear forwards;
 }
 
-#slideshow img {
-  max-width: 90%;
-  max-height: 90%;
-  border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-  transition: opacity 0.8s ease;
+@keyframes floatUp{
+  to{transform:translateY(-120vh);opacity:0}
 }
 </style>
 </head>
 
 <body>
 
-<div id="screen">
-  <h1>Zainy 💖</h1>
-  <p id="question">Will you be my Valentine, Zainy? 💖</p>
-
-  <div id="buttons">
-    <button id="yes">Yes 💕</button>
-    <button id="no">No 🙈</button>
-  </div>
+<!-- INTRO -->
+<div class="screen active" id="intro">
+  <h1 id="typeText"></h1>
+  <button onclick="startGame()">Start the Game 🍫</button>
 </div>
 
-<div id="slideshow">
-  <img id="img" src="photo1.jpeg">
+<!-- GAME -->
+<div class="screen" id="game">
+  <h1>🍫 Collect Chocolates for Zainy</h1>
+  <p>🍫 <span id="score">0</span> | ⏳ <span id="time">20</span>s</p>
+  <div id="gameArea"></div>
+</div>
+
+<!-- END -->
+<div class="screen" id="end">
+  <h1>Chocolate Day 🍫💖</h1>
+  <p id="finalText"></p>
 </div>
 
 <script>
-const noBtn = document.getElementById("no");
-const yesBtn = document.getElementById("yes");
-const screen = document.getElementById("screen");
-const slideshow = document.getElementById("slideshow");
-const img = document.getElementById("img");
+/* TYPEWRITER */
+const text="Hey Zainy…\nChocolate Day is sweeter\nwhen it’s with you 🍫💖";
+let ti=0;
+const el=document.getElementById("typeText");
+(function type(){
+  if(ti<text.length){
+    el.innerHTML+=text[ti]==="\n"?"<br>":text[ti];
+    ti++; setTimeout(type,55);
+  }
+})();
 
-const cuteTexts = [
-  "Awww no? 🥺",
-  "Think again 😭",
-  "Pleaseee 💔",
-  "Don’t break my heart 😩",
-  "Zainy 😜",
-  "Not this one 😏"
+/* GAME VARIABLES */
+let score=0,time=20;
+let spawnSpeed=800;
+let fallSpeed=5;
+let gameInt,timerInt;
+
+const reactionsGood=[
+  "Sweet like you 💕",
+  "Perfect catch 😋",
+  "Zainy is winning 🍫",
+  "Too sweet 😌"
 ];
 
-let scale = 1;
-let attempts = 0;
+const reactionsBad=[
+  "Oops 😅",
+  "Not chocolate!",
+  "Try again 😉"
+];
 
-["mouseenter", "touchstart"].forEach(evt => {
-  noBtn.addEventListener(evt, () => {
-    attempts++;
+function startGame(){
+  switchScreen("intro","game");
 
-    if (attempts >= 3 && attempts % 3 === 0) {
-      noBtn.textContent = "Nice try 😏";
-    } else {
-      noBtn.textContent =
-        cuteTexts[Math.floor(Math.random() * cuteTexts.length)];
+  timerInt=setInterval(()=>{
+    time--;
+    document.getElementById("time").textContent=time;
+
+    // Increase difficulty
+    if(time===15||time===10||time===5){
+      spawnSpeed-=150;
+      fallSpeed-=0.8;
+      clearInterval(gameInt);
+      gameInt=setInterval(spawnItem,spawnSpeed);
     }
 
-    scale -= 0.08;
-    if (scale < 0.3) scale = 0.3;
+    if(time<=0) endGame();
+  },1000);
 
-    noBtn.style.position = "absolute";
-    noBtn.style.transform = `scale(${scale})`;
-    noBtn.style.left = Math.random() * 80 + "vw";
-    noBtn.style.top = Math.random() * 80 + "vh";
-  });
-});
+  gameInt=setInterval(spawnItem,spawnSpeed);
+}
 
-const photos = [
-  "photo1.jpeg","photo2.jpeg","photo3.jpeg",
-  "photo4.jpeg","photo5.jpeg","photo6.jpeg",
-  "photo7.jpeg","photo8.jpeg","photo9.jpeg"
-];
+function spawnItem(){
+  const item=document.createElement("div");
+  item.className="item";
 
-let i = 0;
+  const isChocolate=Math.random()>0.25; // 25% fake
+  item.textContent=isChocolate?"🍫":"❌";
 
-yesBtn.addEventListener("click", () => {
-  screen.innerHTML = `
-    <h1>YAYYYY 🎉💖</h1>
-    <p>Abbas & Zainy ♾️</p>
-  `;
+  item.style.left=Math.random()*90+"vw";
+  item.style.animationDuration=(fallSpeed+Math.random()*2)+"s";
 
-  setTimeout(() => {
-    screen.style.display = "none";
-    slideshow.style.display = "flex";
+  item.onclick=()=>{
+    if(isChocolate){
+      score++;
+      document.getElementById("score").textContent=score;
+      showPopup(reactionsGood);
+    }else{
+      showPopup(reactionsBad);
+    }
+    item.remove();
+  };
 
-    setInterval(() => {
-      i = (i + 1) % photos.length;
-      img.style.opacity = 0;
-      setTimeout(() => {
-        img.src = photos[i];
-        img.style.opacity = 1;
-      }, 400);
-    }, 2500);
-  }, 5000);
-});
+  document.getElementById("gameArea").appendChild(item);
+  setTimeout(()=>item.remove(),6000);
+}
+
+function showPopup(arr){
+  const p=document.createElement("div");
+  p.className="popup";
+  p.textContent=arr[Math.floor(Math.random()*arr.length)];
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),1400);
+}
+
+function endGame(){
+  clearInterval(timerInt);
+  clearInterval(gameInt);
+  switchScreen("game","end");
+
+  document.getElementById("finalText").innerHTML=
+  `You collected <b>${score}</b> chocolates 🍫<br><br>
+   Some were tricky, some were sweet… just like moments in life 😌<br><br>
+   I wish I could give you all these chocolates in real life,<br>
+   but for now, this little game is my Chocolate Day surprise for you 💖<br><br>
+   <b>Happy Chocolate Day, Zainy 🍫</b><br>
+   — Abbas`;
+
+  startHearts();
+}
+
+/* HEARTS */
+function startHearts(){
+  for(let i=0;i<30;i++){
+    const h=document.createElement("div");
+    h.className="heart";
+    h.textContent="💖";
+    h.style.left=Math.random()*100+"vw";
+    h.style.animationDuration=3+Math.random()*2+"s";
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(),5000);
+  }
+}
+
+/* SCREEN SWITCH */
+function switchScreen(a,b){
+  document.getElementById(a).classList.remove("active");
+  document.getElementById(b).classList.add("active");
+}
 </script>
 
 </body>
